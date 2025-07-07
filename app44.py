@@ -21,9 +21,9 @@ def format_seconds(val):
     s = s.rstrip('0').rstrip('.') if '.' in s else s
     return s
 
-st.set_page_config(page_title="BPEC Kart Live Analysis", layout="wide")
+st.set_page_config(page_title="BPEC Live Analysis", layout="wide")
 
-st.title("OBABLTMTSA (Ocean Bach's amazing BPEC Live Timing Multi-Team Stint Analyser)")
+st.title("BPEC Live Analysis")
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
