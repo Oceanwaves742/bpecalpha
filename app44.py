@@ -34,8 +34,8 @@ if 'all_laps_df' not in st.session_state:
 # Fetch live data function
 @st.cache_data(ttl=25)  # small cache to avoid hammering source during quick reruns
 def fetch_live_data():
-    #url = "https://results.alphatiming.co.uk/api/v1/bpec/live/current"
-    url = "https://results.alphatiming.co.uk/api/v1/club100/live/current"
+    url = "https://results.alphatiming.co.uk/api/v1/bpec/live/current"
+    #url = "https://results.alphatiming.co.uk/api/v1/club100/live/current"
 
     response = requests.get(url, verify=False)
     response.raise_for_status()
