@@ -34,8 +34,8 @@ if 'all_laps_df' not in st.session_state:
 # Fetch live data function
 @st.cache_data(ttl=25)  # small cache to avoid hammering source during quick reruns
 def fetch_live_data():
-    url = "https://results.alphatiming.co.uk/api/v1/bpec/live/current"
-    #url = "https://results.alphatiming.co.uk/api/v1/club100/live/current"
+    #url = "https://results.alphatiming.co.uk/api/v1/bpec/live/current"
+    url = "https://results.alphatiming.co.uk/api/v1/brentwood/live/current"
 
     response = requests.get(url, verify=False)
     response.raise_for_status()
@@ -44,17 +44,39 @@ def fetch_live_data():
 # Fetch new live data
 data = fetch_live_data()
 
-# Flatten laps from all competitors
+# ---- Extract available kart numbers for sidebar ----
+all_kart_numbers = sorted([
+    comp.get("CompetitorNumber")
+    for comp in data.get("Competitors", [])
+    if comp.get("CompetitorNumber") is not None
+])
+
+
+# ---- Sidebar: Select karts ----
+st.sidebar.header("Settings")
+selected_karts = st.sidebar.multiselect(
+    "Select Kart Number(s)",
+    options=all_kart_numbers,
+    default=[] if all_kart_numbers else []
+)
+threshold_sec = st.sidebar.number_input("Pitstop Threshold (seconds)", min_value=10.0, max_value=300.0, value=130.0, step=1.0)
+threshold_ms = threshold_sec * 1000
+
+
+# ---- Flatten and filter laps based on selected karts ----
 new_rows = []
 for comp in data["Competitors"]:
     kart = comp.get("CompetitorNumber")
-    laps = comp.get("Laps", [])
-    for lap in laps:
+    if kart not in selected_karts:
+        continue
+    for lap in comp.get("Laps", []):
         lap["CompetitorNumber"] = kart
         new_rows.append(lap)
 
+# ---- Build dataframe ----
 df_new = pd.DataFrame(new_rows)
 df_new["LapNumber"] = pd.to_numeric(df_new["LapNumber"], errors='coerce')
+
 
 # Append only new laps (by kart + lap number)
 existing = st.session_state['all_laps_df']
@@ -73,13 +95,6 @@ else:
 
 df_all_laps = st.session_state['all_laps_df']
 
-# === Sidebar Settings ===
-st.sidebar.header("Settings")
-threshold_sec = st.sidebar.number_input("Pitstop Threshold (seconds)", min_value=10.0, max_value=300.0, value=80.0, step=1.0)
-threshold_ms = threshold_sec * 1000
-
-all_kart_numbers = sorted(df_all_laps["CompetitorNumber"].dropna().unique())
-selected_karts = st.sidebar.multiselect("Select Kart Number(s)", options=all_kart_numbers, default=[all_kart_numbers[0]] if all_kart_numbers else [])
 
 # Mapping display names to internal values
 y_axis_options = {
@@ -122,8 +137,8 @@ y_lim_checkbox = st.sidebar.checkbox("Set Y-axis limit")
 y_axis_min = None
 y_axis_max = None
 if y_lim_checkbox:
-    y_axis_min = st.sidebar.number_input("Y-axis Min", value=0.0, step=0.1)
-    y_axis_max = st.sidebar.number_input("Y-axis Max", value=100.0, step=0.1)
+    y_axis_min = st.sidebar.number_input("Y-axis Min", value=71.0, step=0.1)
+    y_axis_max = st.sidebar.number_input("Y-axis Max", value=78.0, step=0.1)
 
 n_lap_avg = st.sidebar.number_input("Number of laps to average", min_value=1, max_value=2000, value=5, step=1)
 
@@ -144,7 +159,7 @@ for kart, df_kart in df_all_laps.groupby("CompetitorNumber"):
     if len(df_kart) >= n_lap_avg:
         lap_window = df_kart.tail(n_lap_avg)["LapTime"].values
         if not np.all(np.isnan(lap_window)):
-            rolling_median = np.nanmedian(lap_window) / 1000.0
+            rolling_median = np.nanmean(lap_window) / 1000.0
 
         else:
             rolling_median = np.nan  # or skip this kart
@@ -347,7 +362,7 @@ for kart in selected_karts:
     last_n_avg_sec = None
     delta_str = ""
     if len(df_laps) >= n_lap_avg:
-        last_n_avg = np.nanmedian(df_laps.tail(n_lap_avg)["LapTime"].values) / 1000.0
+        last_n_avg = np.nanmean(df_laps.tail(n_lap_avg)["LapTime"].values) / 1000.0
         last_n_avg_sec = round(last_n_avg, 3)
 
         # Compute delta to fastest average
