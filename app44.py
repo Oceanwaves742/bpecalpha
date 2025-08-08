@@ -35,7 +35,7 @@ if 'all_laps_df' not in st.session_state:
 @st.cache_data(ttl=25)  # small cache to avoid hammering source during quick reruns
 def fetch_live_data():
     #url = "https://results.alphatiming.co.uk/api/v1/bpec/live/current"
-    url = "https://results.alphatiming.co.uk/api/v1/brentwood/live/current"
+    url = "https://results.alphatiming.co.uk/api/v1/24hr/live/current"
 
     response = requests.get(url, verify=False)
     response.raise_for_status()
@@ -406,3 +406,4 @@ st.markdown(f"⏳ Refreshing every {refresh_rate} seconds.")
 local_time = datetime.now(ZoneInfo("Europe/London"))
 st.write(f"*Last refresh: {local_time.strftime('%Y-%m-%d %H:%M:%S')}*")
 st.write("🏁 MS URBN BLUE are the best 🏁")
+
